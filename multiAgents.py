@@ -74,19 +74,22 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
+        if successorGameState.isWin():
+            return 10000000
+        if successorGameState.isLose():
+            return -100000000
+        closestFoodDist = min(map(lambda x: manhattanDistance(x, newPos), newFood.asList()))
         newGhostPositions = successorGameState.getGhostPositions()
         closestGhost = newGhostPositions[0] #tuple
         for ghostPos in newGhostPositions:
             if manhattanDistance(ghostPos, newPos) < manhattanDistance(closestGhost, newPos):
                 closestGhost = ghostPos
         if manhattanDistance(closestGhost, newPos) == 0:
-            return -1
-        closestFoodDist = min(map(lambda x: manhattanDistance(x, newPos), newFood))
-        ghostWeight = 10 if newScaredTimes[newGhostPositions.index(closestGhost)] else 0
-        ghostScore = 1/float(manhattanDistance(closestGhost, newPos))
-        foodScore = 1/float(successorGameState.getNumFood())
-        closeFoodScore = 1/float(closestFoodDist)
-        return successorGameState.getScore() + ghostWeight*ghostScore + foodScore + closeFoodScore
+            return -100000000
+        ghostWeight = .2 if newScaredTimes[newGhostPositions.index(closestGhost)] == 0.0 else 0
+        ghostScore = manhattanDistance(closestGhost, newPos)
+        closeFoodScore = 10/float(closestFoodDist) if not newFood[newPos[0]][newPos[1]] else 20
+        return successorGameState.getScore() + ghostWeight*ghostScore/(closestFoodDist + 1) - successorGameState.getNumFood()
 
 def scoreEvaluationFunction(currentGameState):
     """
