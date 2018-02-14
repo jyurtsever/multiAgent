@@ -15,6 +15,8 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
+import searchAgents
+import search
 
 from game import Agent
 
@@ -74,19 +76,59 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
+        x, y = newPos
         newGhostPositions = successorGameState.getGhostPositions()
-        closestGhost = newGhostPositions[0] #tuple
-        for ghostPos in newGhostPositions:
-            if manhattanDistance(ghostPos, newPos) < manhattanDistance(closestGhost, newPos):
-                closestGhost = ghostPos
-        if manhattanDistance(closestGhost, newPos) == 0:
+
+        if successorGameState.isLose():
             return -1
-        closestFoodDist = min(map(lambda x: manhattanDistance(x, newPos), newFood))
-        ghostWeight = 10 if newScaredTimes[newGhostPositions.index(closestGhost)] else 0
-        ghostScore = 1/float(manhattanDistance(closestGhost, newPos))
-        foodScore = 1/float(successorGameState.getNumFood())
-        closeFoodScore = 1/float(closestFoodDist)
-        return successorGameState.getScore() + ghostWeight*ghostScore + foodScore + closeFoodScore
+        if successorGameState.isWin():
+            return 1000
+
+        food = []
+        for y in range(0, newFood.height):
+            for x in range(0, newFood.width):
+                if newFood[x][y]:
+                    food.append((x, y))
+        if len(food) == 0:
+            return successorGameState.getScore() # this needs to change to account for ghost, maybe set distClosesetFood = 0 ?
+        distClosestFood = manhattanDistance(food[0], newPos)
+        for pos in food:
+            dist = manhattanDistance(pos, newPos)
+            if  dist < distClosestFood:
+                distClosestFood = dist
+
+        distClosestFood = 1.0 / distClosestFood
+
+        ghostDistances = map(lambda (x, y) : manhattanDistance((x, y), newPos), newGhostPositions)
+        distClosestGhost = min(ghostDistances)
+
+        # foodLeft = successorGameState.getNumFood()
+        # foodLeft = 1.0/foodLeft
+
+        foodHere = 1 if successorGameState.getNumFood() < currentGameState.getNumFood() else 0
+
+        return  15*distClosestFood + 0.25*distClosestGhost + 20*foodHere
+
+def mazeDistance(point1, point2, gameState):
+    """
+    Returns the maze distance between any two points, using the search functions
+    you have already built. The gameState can be any game state -- Pacman's
+    position in that state is ignored.
+
+    Example usage: mazeDistance( (2,4), (5,6), gameState)
+
+    This might be a useful helper function for your ApproximateSearchAgent.
+    """
+
+    x1, y1 = point1
+    x2, y2 = point2
+    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+    walls = gameState.getWalls()
+    assert not walls[x1][y1], 'point1 is a wall: '
+    assert not walls[x2][y2], 'point2 is a wall: '
+    prob = searchAgents.PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
+    return len(search.bfs(prob))
+
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -159,7 +201,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        depth = self.depth
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
