@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -76,59 +76,22 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        x, y = newPos
-        newGhostPositions = successorGameState.getGhostPositions()
-
-        if successorGameState.isLose():
-            return -1
         if successorGameState.isWin():
-            return 1000
-
-        food = []
-        for y in range(0, newFood.height):
-            for x in range(0, newFood.width):
-                if newFood[x][y]:
-                    food.append((x, y))
-        if len(food) == 0:
-            return successorGameState.getScore() # this needs to change to account for ghost, maybe set distClosesetFood = 0 ?
-        distClosestFood = manhattanDistance(food[0], newPos)
-        for pos in food:
-            dist = manhattanDistance(pos, newPos)
-            if  dist < distClosestFood:
-                distClosestFood = dist
-
-        distClosestFood = 1.0 / distClosestFood
-
-        ghostDistances = map(lambda (x, y) : manhattanDistance((x, y), newPos), newGhostPositions)
-        distClosestGhost = min(ghostDistances)
-
-        # foodLeft = successorGameState.getNumFood()
-        # foodLeft = 1.0/foodLeft
-
-        foodHere = 1 if successorGameState.getNumFood() < currentGameState.getNumFood() else 0
-
-        return  15*distClosestFood + 0.25*distClosestGhost + 20*foodHere
-
-def mazeDistance(point1, point2, gameState):
-    """
-    Returns the maze distance between any two points, using the search functions
-    you have already built. The gameState can be any game state -- Pacman's
-    position in that state is ignored.
-
-    Example usage: mazeDistance( (2,4), (5,6), gameState)
-
-    This might be a useful helper function for your ApproximateSearchAgent.
-    """
-
-    x1, y1 = point1
-    x2, y2 = point2
-    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-    walls = gameState.getWalls()
-    assert not walls[x1][y1], 'point1 is a wall: '
-    assert not walls[x2][y2], 'point2 is a wall: '
-    prob = searchAgents.PositionSearchProblem(gameState, start=point1, goal=point2, warn=False, visualize=False)
-    return len(search.bfs(prob))
-
+            return 10000000
+        if successorGameState.isLose():
+            return -100000000
+        closestFoodDist = min(map(lambda x: manhattanDistance(x, newPos), newFood.asList()))
+        newGhostPositions = successorGameState.getGhostPositions()
+        closestGhost = newGhostPositions[0] #tuple
+        for ghostPos in newGhostPositions:
+            if manhattanDistance(ghostPos, newPos) < manhattanDistance(closestGhost, newPos):
+                closestGhost = ghostPos
+        if manhattanDistance(closestGhost, newPos) == 0:
+            return -100000000
+        ghostWeight = .2 if newScaredTimes[newGhostPositions.index(closestGhost)] == 0.0 else 0
+        ghostScore = manhattanDistance(closestGhost, newPos)
+        closeFoodScore = 10/float(closestFoodDist) if not newFood[newPos[0]][newPos[1]] else 20
+        return successorGameState.getScore() + ghostWeight*ghostScore/(closestFoodDist + 1) - successorGameState.getNumFood()
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -189,7 +152,20 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def helper(gameState, depth, agentIndex):
+            if depth == 0 or gameState.isLose() or gameState.isWin():
+                return self.evaluationFunction(gameState), 'Stop'
+            acts = gameState.getLegalActions(agentIndex)
+            nextAgentInd = (agentIndex + 1) % gameState.getNumAgents()
+            if not nextAgentInd:
+                depth -= 1
+            stateScores = [helper(gameState.generateSuccessor(agentIndex, act),
+                             depth, nextAgentInd)[0] for act in acts]
+            if agentIndex:
+                return min(stateScores), acts[stateScores.index(min(stateScores))]
+            else:
+                return max(stateScores), acts[stateScores.index(max(stateScores))]
+        return helper(gameState, self.depth, self.index)[1]
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -217,7 +193,20 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def helper(gameState, depth, agentIndex):
+            if depth == 0 or gameState.isLose() or gameState.isWin():
+                return self.evaluationFunction(gameState), 'Stop'
+            acts = gameState.getLegalActions(agentIndex)
+            nextAgentInd = (agentIndex + 1) % gameState.getNumAgents()
+            if not nextAgentInd:
+                depth -= 1
+            stateScores = [helper(gameState.generateSuccessor(agentIndex, act),
+                                  depth, nextAgentInd)[0] for act in acts]
+            if agentIndex:
+                return sum(stateScores)/float(len(stateScores)), 'Should be Meaningless'
+            else:
+                return max(stateScores), acts[stateScores.index(max(stateScores))]
+        return helper(gameState, self.depth, self.index)[1]
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -231,4 +220,3 @@ def betterEvaluationFunction(currentGameState):
 
 # Abbreviation
 better = betterEvaluationFunction
-
