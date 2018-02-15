@@ -15,8 +15,7 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
-import searchAgents
-import search
+import sys
 
 from game import Agent
 
@@ -177,8 +176,41 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        depth = self.depth
 
+        def calcWithPrune(gameState, depth, agentIndex, alpha, beta):
+            if depth == 0 or gameState.isLose() or gameState.isWin():
+                return self.evaluationFunction(gameState), 'Stop'
+            acts = gameState.getLegalActions(agentIndex)
+            nextAgentInd = (agentIndex + 1) % gameState.getNumAgents()
+            if not nextAgentInd:
+                depth -= 1
+
+            if agentIndex: #minimizer
+                v = sys.maxint
+                for act in acts:
+                    next = calcWithPrune(gameState.generateSuccessor(agentIndex, act),
+                                         depth, nextAgentInd, alpha, beta)[0]
+                    if next < v:
+                        v = next
+                        bestAction = act
+                    if v < alpha:
+                        return v, act
+                    beta = min(beta, v)
+            else: #maximizer
+                v = -sys.maxint
+                for act in acts:
+                    child = calcWithPrune(gameState.generateSuccessor(agentIndex, act),
+                                          depth, nextAgentInd, alpha, beta)[0]
+                    if child > v:
+                        v = child
+                        bestAction = act
+                    if v > beta:
+                        return v, act
+                    alpha = max(alpha, v)
+
+            return v, bestAction
+        return calcWithPrune(gameState, self.depth, self.index, -sys.maxint, sys.maxint)[1]
+m
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
