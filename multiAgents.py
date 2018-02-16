@@ -210,7 +210,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
 
             return v, bestAction
         return calcWithPrune(gameState, self.depth, self.index, -sys.maxint, sys.maxint)[1]
-m
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -248,7 +248,28 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    if currentGameState.isWin():
+        return 10000000
+    if currentGameState.isLose():
+        return -100000000
+
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    newGhostStates = currentGameState.getGhostStates()
+    newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+    closestFoodDist = min(map(lambda x: manhattanDistance(x, newPos), newFood.asList()))
+    newGhostPositions = currentGameState.getGhostPositions()
+    closestGhost = newGhostPositions[0] #tuple
+    for ghostPos in newGhostPositions:
+        if manhattanDistance(ghostPos, newPos) < manhattanDistance(closestGhost, newPos):
+            closestGhost = ghostPos
+    if manhattanDistance(closestGhost, newPos) == 0:
+        return -100000000
+    ghostWeight = .2 if newScaredTimes[newGhostPositions.index(closestGhost)] == 0.0 else 0
+    ghostScore = manhattanDistance(closestGhost, newPos)
+    closeFoodScore = 10/float(closestFoodDist) if not newFood[newPos[0]][newPos[1]] else 20
+    return currentGameState.getScore() + ghostWeight*ghostScore/(closestFoodDist + 1) - currentGameState.getNumFood() + closeFoodScore
 
 # Abbreviation
 better = betterEvaluationFunction
